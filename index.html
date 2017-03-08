@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-2.1.4.min.js"></script>
+    <script>
+      var access_token = "";
+      var client_id = "6b29724f-db63-4eff-b766-fe2a7d234ef1";
+      var redirect_uri = "http://office365room.azurewebsites.net/index.html";
+      var resource_uri = "https://graph.microsoft.com/";
+      var rest_uri = "https://graph.microsoft.com/beta/me/events";
+      var cancel_uri = "";
+      var v = "";
+
+      $(function(){
+        var q = location.href.split("#");
+        if(q.length > 1){
+          var prms = q[1].split("&");
+          for(var i = 0;i < prms.length; i++){
+            prm = prms[i].split("=");
+            if(prm[0].toLowerCase() == "access_token"){
+              access_token = prm[1];
+              break;
+            }
+          }
+          $("#btnSignin").attr("disabled", true);
+          $("#btnCallApi").attr("disabled", false);
+          $("#btnCallApi").removeAttr("disabled");
+          $("#btnCancel").attr("disabled", false);
+          $("#btnCancel").removeAttr("disabled");
+        }else{
+          $("#btnSignin").attr("disabled", false);
+          $("#btnSignin").removeAttr("disabled");
+          $("#btnCallApi").attr("disabled", true);
+          $("#btnCancel").attr("disabled", true);
+        }
+
+        $("#btnSignin").click(function(){
+          var auth_uri = "https://login.windows.net/common/oauth2/authorize?response_type=token&redirect_uri=" + encodeURIComponent(redirect_uri) + "&client_id=" + client_id + "&resource=" + encodeURIComponent(resource_uri);
+          window.location.href = auth_uri;
+        });
+
+        $("#btnCallApi").click(function(){
+          $.ajax({
+            url      : rest_uri,
+            type     : "GET",
+            async    : false,
+            dataType : "json",
+            headers  : {
+              "Authorization" : "Bearer " + access_token
+            },
+            success  : function(data){
+              var ret = "";
+              v = data.value;
+              for(var j = 0;j < v.length; j++){
+                ret += "Subject:" + v[j].subject + ", Start:" + v[j].start.dateTime + ", End:" + v[j].end.dateTime + "\n";
+              }
+              $("#txtResult").val(ret);
+            },
+            error: function(){
+              alert("エラーが発生しました！");
+            }
+          });
+        });
+        
+        $("#btnCancel").click(function(){
+            var event_name = cancel_form.textbox.value;
+            for(var k = 0;k < v.length; k++){
+                if(v[k].subject == event_name){
+                    cancel_uri = rest_uri +"/"+ v[k].id;
+                }
+            }
+            $.ajax({
+              url      : cancel_uri,
+              type     : "DELETE",
+              async    : false,
+              dataType : "json",
+              headers  : {
+                "Authorization" : "Bearer " + access_token
+              },
+              success  : function(){
+            	  alert("予約をキャンセルしました。")
+              },
+              error: function(){
+                alert("エラーが発生しました。");
+              }
+            });
+          });
+      });
+    </script>
+  </head>
+  <body>
+    <table>
+      <tr>
+        <td><button id="btnSignin">サインイン</button>
+        <button id="btnCallApi">予約一覧</button>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2"><textarea id="txtResult" cols="90" rows="10"></textarea></td>
+      </tr>
+      <tr>
+      <td>キャンセルする予約名を入力してください。
+      <form name = "cancel_form">
+      <input type="text" name="textbox">
+      <button id="btnCancel">予約キャンセル</button>
+      </form>
+      </td>
+      </tr>
+    </table>
+  </body>
+</html>
