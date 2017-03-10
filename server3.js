@@ -2,55 +2,62 @@ var http = require('http');
 var https = require('https');
 var url = require('url');
 var qs = require('querystring');
+var moment = require("moment");
 var id = "";
-var count = 0;
+var time = "";
 
 http.createServer(
-function onRequest (req, res) {
-// This time we don't store access token,
-// but please store access token and reuse in production code...
-var query = url.parse(req.url, true).query;
-console.log(query);
-
-var postData = "";
-  req.setEncoding("utf8");
-if (req.method === 'POST' && req.url === '/') {
-  req.addListener("data", function(postDataChunk) {
-    postData += postDataChunk;
-    console.log("Received POST data chunk '"+
-    postDataChunk + "'.");      
-});   
-
-  req.addListener("end", function() {
-    count++;
-    console.log("-----------"+count+"------------");
-  });
-}
-// Get access token
-  getAccessToken(function(jsonAuth) { 
-    // Get messages from Office 365 (Exchange Online)
-    res.writeHead(200,
-   { 'Content-Type': 'text/html; charset=utf-8' });
-    var msgbody = '';
-    getEvent(JSON.parse(jsonAuth).access_token,
- function(jsonMsg) {
-      msgbody += jsonMsg;
-    }, function() {
-      var msgobj = JSON.parse(msgbody).value;
-      for(var i = 0; i < msgobj.length; i++) {
-        var msg = msgobj[i];
-        res.write(msg.subject + '<br />');
+  function onRequest (req, res) {
+    // This time we don't store access token,
+    // but please store access token and reuse in production code...
+    var query = url.parse(req.url, true).query;
+    console.log(query);
+    
+    var postData = "";
+    req.setEncoding("utf8");
+   if (req.method === 'POST' && req.url === '/') { 
+    req.on("data", function(postDataChunk) {
+      postData += postDataChunk;
+      console.log("Received POST data chunk '"+
+        postDataChunk + "'.");
+        });
+        
+    req.on("end", function() {
+       time = JSON.parse(postData).time;
+       console.log("-----------"+ time + "---------");
+       });
+   }   
+       // Get access token
+       getAccessToken(function(jsonAuth) { 
+       // Get messages from Office 365 (Exchange Online)
+       res.writeHead(200,
+         { 'Content-Type': 'text/html; charset=utf-8' });
+         var msgbody = '';
+         getEvent(JSON.parse(jsonAuth).access_token,
+           function(jsonMsg) {
+             msgbody += jsonMsg;
+             }, function() {
+               var msgobj = JSON.parse(msgbody).value;
+               for(var i = 0; i < msgobj.length; i++) {
+                 var msg = msgobj[i];
+        
+        
+        
+        res.write(msg.subject + '<br />' + msg.start.dateTime + '<br />' + msg.end.dateTime + '<br /><br />');
         id = msg.id;
       }
      res.end();
     });
-    if(count == 5){
+    
+ //センサーからPOSTがきたときだけDELETE   
+if (req.method === 'POST' && req.url === '/') {
    deleteEvent(id, JSON.parse(jsonAuth).access_token,
 function(jsonMsg) {
    }, function() {     
     });
-    count = 0;}
-});   
+}  
+});
+  
 }).listen(process.env.PORT);
  
 function getAccessToken(callback) {
