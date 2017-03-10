@@ -7,59 +7,52 @@ var count = 0;
 
 http.createServer(
 function onRequest (req, res) {
-  // This time we don't store access token,
-  // but please store access token and reuse in production code...
-  var query = url.parse(req.url, true).query;
-  console.log(query);
-  console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-  
-  var postData = "";
-    req.setEncoding("utf8");
+// This time we don't store access token,
+// but please store access token and reuse in production code...
+var query = url.parse(req.url, true).query;
+console.log(query);
 
-    req.addListener("data", function(postDataChunk) {
-      postData += postDataChunk;
-      console.log("Received POST data chunk '"+
-      postDataChunk + "'.");
-        
+var postData = "";
+  req.setEncoding("utf8");
+if (req.method === 'POST' && req.url === '/') {
+  req.addListener("data", function(postDataChunk) {
+    postData += postDataChunk;
+    console.log("Received POST data chunk '"+
+    postDataChunk + "'.");      
 });   
 
-    req.addListener("end", function() {
-      count++;
-      console.log("-----------"+count+"------------");
+  req.addListener("end", function() {
+    count++;
+    console.log("-----------"+count+"------------");
+  });
+}
+// Get access token
+  getAccessToken(function(jsonAuth) { 
+    // Get messages from Office 365 (Exchange Online)
+    res.writeHead(200,
+   { 'Content-Type': 'text/html; charset=utf-8' });
+    var msgbody = '';
+    getEvent(JSON.parse(jsonAuth).access_token,
+ function(jsonMsg) {
+      msgbody += jsonMsg;
+    }, function() {
+      var msgobj = JSON.parse(msgbody).value;
+      for(var i = 0; i < msgobj.length; i++) {
+        var msg = msgobj[i];
+        res.write(msg.subject + '<br />');
+        id = msg.id;
+      }
+     res.end();
     });
-
-  // Get access token
-    getAccessToken(function(jsonAuth) {
-      
-      console.log("---------------getaccesstoken!!!!!!!!!!!!!--------------------");
-      // Get messages from Office 365 (Exchange Online)
-      res.writeHead(200,
-     { 'Content-Type': 'text/html; charset=utf-8' });
-      var msgbody = '';
-      getEvent(JSON.parse(jsonAuth).access_token,
-   function(jsonMsg) {
-        msgbody += jsonMsg;
-      }, function() {
-        var msgobj = JSON.parse(msgbody).value;
-        for(var i = 0; i < msgobj.length; i++) {
-          var msg = msgobj[i];
-          res.write(msg.subject + '<br />' + msg.id);
-          id = msg.id;
-        }
-       res.end();
-      });
-      if(count == 5){
-     deleteEvent(id, JSON.parse(jsonAuth).access_token,
-  function(jsonMsg) {
-     }, function() {
-       
-      });
-      count = 0;}
-});  
-    
-    }).listen(process.env.PORT);
-   
-
+    if(count == 5){
+   deleteEvent(id, JSON.parse(jsonAuth).access_token,
+function(jsonMsg) {
+   }, function() {     
+    });
+    count = 0;}
+});   
+}).listen(process.env.PORT);
+ 
 function getAccessToken(callback) {
   var postdata = qs.stringify({
       'grant_type' : 'password',
@@ -68,7 +61,6 @@ function getAccessToken(callback) {
       'client_secret' : '7eZ0ko8lXAJRKip6q4IXQUcQdH+krEXizkyrW7LQaRY=',
       'username' : 'raspberrysan55@raspberrysan55.onmicrosoft.com',
       'password' : 'Raspberry3720'
-   
   });
   var opt = {
     host : 'login.windows.net',
