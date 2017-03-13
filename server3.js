@@ -3,30 +3,27 @@ var https = require('https');
 var url = require('url');
 var qs = require('querystring');
 var moment = require("moment");
-var id = "";
-var time = "";
+var room_time = moment();
 
 http.createServer(
   function onRequest (req, res) {
     // This time we don't store access token,
     // but please store access token and reuse in production code...
-    var query = url.parse(req.url, true).query;
-    console.log(query);
     
     var postData = "";
     req.setEncoding("utf8");
+    
    if (req.method === 'POST' && req.url === '/') { 
     req.on("data", function(postDataChunk) {
       postData += postDataChunk;
-      console.log("Received POST data chunk '"+
-        postDataChunk + "'.");
+      console.log("Received POST data chunk '"+ postDataChunk + "'.");
         });
         
     req.on("end", function() {
-       time = JSON.parse(postData).time;
-       console.log("-----------"+ time + "---------");
+       room_time = moment(JSON.parse(postData).time);
+       console.log("-------------------予約一覧-------------------");
        });
-   }   
+     
        // Get access token
        getAccessToken(function(jsonAuth) { 
        // Get messages from Office 365 (Exchange Online)
@@ -39,25 +36,32 @@ http.createServer(
              }, function() {
                var msgobj = JSON.parse(msgbody).value;
                for(var i = 0; i < msgobj.length; i++) {
-                 var msg = msgobj[i];
-        
-        
-        
-        res.write(msg.subject + '<br />' + msg.start.dateTime + '<br />' + msg.end.dateTime + '<br /><br />');
-        id = msg.id;
-      }
-     res.end();
-    });
-    
- //センサーからPOSTがきたときだけDELETE   
-if (req.method === 'POST' && req.url === '/') {
-   deleteEvent(id, JSON.parse(jsonAuth).access_token,
-function(jsonMsg) {
-   }, function() {     
-    });
-}  
-});
-  
+                 var msg = msgobj[i];    
+                                  
+                 var start_datetime = moment(msg.start.dateTime);
+                 var end_datetime = moment(msg.end.dateTime);
+                 
+                 start_datetime.add(9, 'hours');
+                 end_datetime.add(9, 'hours');
+                 
+                 console.log('件名：' + msg.subject);
+                 console.log('開始時間：' + start_datetime.format());
+                 console.log('終了時間：' + end_datetime.format());
+                 console.log('');
+                 
+                 //予約の時間から15分経過していたらキャンセル                 
+                 if(room_time.isSameOrAfter(start_datetime.add(15, 'minutes')) && 
+                   room_time.isSameOrBefore(end_datetime)){
+                   deleteEvent(msg.id, JSON.parse(jsonAuth).access_token,
+                     function(jsonMsg) {}, function() {});
+                     console.log('------------'+msg.subject + 'をキャンセルしました------------'); 
+                     }
+               }
+               res.end();
+               console.log('---------------------------------------------');
+           });
+     });
+   }
 }).listen(process.env.PORT);
  
 function getAccessToken(callback) {
