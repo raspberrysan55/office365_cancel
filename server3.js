@@ -26,7 +26,7 @@ http.createServer(
        console.log("-------------------予約一覧-------------------");
        
        });
-     
+   
        // Get access token
        getAccessToken(function(jsonAuth) { 
        // Get messages from Office 365 (Exchange Online)
@@ -74,8 +74,8 @@ function getAccessToken(callback) {
       'resource' : 'https://graph.microsoft.com/',
       'client_id' : 'ea4efe0b-144e-4b4d-8b2c-6ae5985753c0',
       'client_secret' : '7eZ0ko8lXAJRKip6q4IXQUcQdH+krEXizkyrW7LQaRY=',
-      'username' : '',
-      'password' : ''
+      'username' : process.env.USER_NAME,
+      'password' : process.env.PASSWORD
   });
   var opt = {
     host : 'login.windows.net',
