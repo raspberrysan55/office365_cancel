@@ -21,7 +21,10 @@ http.createServer(
         
     req.on("end", function() {
        room_time = moment(JSON.parse(postData).time);
+       console.log("---------------------------------------------");
+       console.log("現在時刻：" + room_time.format());
        console.log("-------------------予約一覧-------------------");
+       
        });
      
        // Get access token
@@ -54,7 +57,8 @@ http.createServer(
                    room_time.isSameOrBefore(end_datetime)){
                    deleteEvent(msg.id, JSON.parse(jsonAuth).access_token,
                      function(jsonMsg) {}, function() {});
-                     console.log('------------'+msg.subject + 'をキャンセルしました------------'); 
+                     console.log('>>>>>'+msg.subject + 'をキャンセルしました'); 
+                     console.log('');
                      }
                }
                res.end();
@@ -70,8 +74,8 @@ function getAccessToken(callback) {
       'resource' : 'https://graph.microsoft.com/',
       'client_id' : 'ea4efe0b-144e-4b4d-8b2c-6ae5985753c0',
       'client_secret' : '7eZ0ko8lXAJRKip6q4IXQUcQdH+krEXizkyrW7LQaRY=',
-      'username' : 'raspberrysan55@raspberrysan55.onmicrosoft.com',
-      'password' : 'Raspberry3720'
+      'username' : '',
+      'password' : ''
   });
   var opt = {
     host : 'login.windows.net',
